@@ -1,8 +1,22 @@
 import sys
+import subprocess
+
+# ── إخفاء كل console subprocesses على Windows ──
+if sys.platform == "win32":
+    _orig_popen = subprocess.Popen.__init__
+
+
+    def _hidden_popen(self, *args, **kwargs):
+        if sys.platform == "win32":
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            kwargs.setdefault("startupinfo", si)
+        _orig_popen(self, *args, **kwargs)
+    subprocess.Popen.__init__ = _hidden_popen
+
+
 import tkinter as tk
 from tkinter import messagebox
-import os
-
 from config.config import DEFAULT_TESSERACT, DEFAULT_POPPLER
 from gui.app import RenamerApp
 
