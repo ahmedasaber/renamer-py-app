@@ -222,12 +222,16 @@ class RenamerApp(tk.Tk):
                 if ref:
                     new_name = build_new_name(ref)
                     if new_name:
-                        new_path = get_unique_path(folder, new_name)
-                        if not dry_run:
-                            os.rename(path, new_path)
-                        label = "[DRY RUN]" if dry_run else "✅ تم"
-                        self._log(f"         ✅  {new_name}  {label}", "ok")
-                        success += 1
+                        if new_name != file:
+                            new_path = get_unique_path(folder, new_name)
+                            if not dry_run:
+                                os.rename(path, new_path)
+                            label = "[DRY RUN]" if dry_run else "✅ تم"
+                            self._log(f"         ✅  {new_name}  {label}", "ok")
+                            success += 1
+                        else:
+                            self._log(f"         ⚠️  اتسمى قبل كدا الملف دا: {file}", "warn")
+                            failed += 1
                     else:
                         self._log(f"         ⚠️  فورمات غريب: {ref}", "warn")
                         failed += 1
