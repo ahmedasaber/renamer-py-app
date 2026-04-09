@@ -233,7 +233,8 @@ class RenamerApp(tk.Tk):
                         if not dry_run:
                             os.rename(path, new_path)
                         label = "[DRY RUN]" if dry_run else "✅ تم"
-                        self._log(f"         ✅  {new_name}  {label}", "ok")
+                        final_name = os.path.basename(new_path)
+                        self._log(f"         ✅  {final_name}  {label}", "ok")
                         success += 1
                     else:
                         self._log(f"         ⚠️  فورمات غريب: {ref}", "warn")
