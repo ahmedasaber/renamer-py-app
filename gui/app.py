@@ -6,9 +6,8 @@ import pytesseract
 from pdf2image import convert_from_path
 
 from config.config import DEFAULT_TESSERACT, DEFAULT_POPPLER
-from core.parser import extract_ref
 from core.renamer import build_new_name, get_unique_path, already_renamed
-from core.ocr import extract_text_from_image
+from core.ocr import get_ref_from_image
 
 
 # ══════════════════════════════════════════════
@@ -32,7 +31,7 @@ class RenamerApp(tk.Tk):
         tk.Label(self, text="PDF Auto Renamer",
                  font=("Segoe UI", 18, "bold"),
                  bg="#1e1e2e", fg="#cdd6f4").pack(pady=(18, 4))
-        tk.Label(self, text="بيعيد تسمية ملفات PDF تلقائياً من الـ Submittal Ref",
+        tk.Label(self, text="Automatically rename PDF files from the Submittal Ref.",
                  font=("Segoe UI", 10),
                  bg="#1e1e2e", fg="#a6adc8").pack(pady=(0, 14))
 
@@ -58,7 +57,7 @@ class RenamerApp(tk.Tk):
                           cursor="hand2").pack(side="left", padx=(6, 0))
             return var
 
-        self.folder_var = row(cfg, "مجلد الـ PDF", "", self._browse_folder)
+        self.folder_var = row(cfg, "PDFs Folder", "", self._browse_folder)
         self.tesseract_var = row(cfg, "Tesseract", DEFAULT_TESSERACT)
         self.poppler_var = row(cfg, "Poppler bin", DEFAULT_POPPLER)
 
@@ -193,7 +192,7 @@ class RenamerApp(tk.Tk):
         self.progress["maximum"] = total
         self.progress["value"] = 0
 
-        success = failed = 0
+        success = failed = skipped = 0
 
         for index, file in enumerate(pdf_files, 1):
             path = os.path.join(folder, file)
@@ -202,7 +201,7 @@ class RenamerApp(tk.Tk):
             if already_renamed(file):
                 self._log("         ⏭️  اتسمّى قبل كده، متخطي", "muted")
                 self.progress["value"] = index
-                success += 1
+                skipped += 1
                 continue
 
             self.after(0, self.status_var.set, f"جاري معالجة {index}/{total} ...")
@@ -225,12 +224,7 @@ class RenamerApp(tk.Tk):
 
                 try:
                     img = images[0]
-
-                    text = extract_text_from_image(img, 0.20)
-                    ref = extract_ref(text)
-                    if not ref:
-                        text = extract_text_from_image(img, 0.40)
-                        ref = extract_ref(text)
+                    ref = get_ref_from_image(img)
                 finally:
                     img.close()
 
@@ -259,6 +253,7 @@ class RenamerApp(tk.Tk):
 
         self._log("\n" + "=" * 44, "muted")
         self._log(f"✅  نجح  : {success} ملف", "ok")
+        self._log(f"⏭️  متخطي : {skipped} ملف", "muted")
         self._log(f"❌  فشل  : {failed} ملف", "err")
         self._log("=" * 44, "muted")
         if dry_run:
