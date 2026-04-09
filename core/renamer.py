@@ -16,7 +16,7 @@ def get_unique_path(folder, new_name):
     counter = 1
 
     while os.path.exists(new_path):
-        new_path = os.path.join(folder, new_name.replace(".pdf", f"_{counter}.pdf"))
+        new_path = os.path.join(folder, new_name.replace(".pdf", f"_({counter}).pdf"))
         counter += 1
 
     return new_path
