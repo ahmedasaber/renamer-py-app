@@ -1,5 +1,5 @@
 import os
-
+import re
 
 def build_new_name(ref):
     parts = [p.strip() for p in ref.split("/")]
@@ -20,3 +20,16 @@ def get_unique_path(folder, new_name):
         counter += 1
 
     return new_path
+
+
+def already_renamed(filename):
+    """
+    بترجع True لو الملف اتسمّى قبل كده بالفورمات الصح
+    QS GEN 373 REV00.pdf      → True  ⏭️
+    QS GEN 373 REV00_(1).pdf  → True  ⏭️
+    doc007376202604.pdf       → False ✅
+    """
+    name = os.path.splitext(filename)[0]
+    name = re.sub(r'_\(\d+\)$', '', name)  # شيل _(1) أو _(2) لو موجود
+    pattern = r'^[A-Z]{2,3}\s[A-Z]{2,4}\s\d+\sREV\d+$'
+    return bool(re.match(pattern, name, re.IGNORECASE))

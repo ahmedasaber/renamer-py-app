@@ -7,7 +7,7 @@ from pdf2image import convert_from_path
 
 from config.config import DEFAULT_TESSERACT, DEFAULT_POPPLER
 from core.parser import extract_ref
-from core.renamer import build_new_name, get_unique_path
+from core.renamer import build_new_name, get_unique_path, already_renamed
 
 
 # ══════════════════════════════════════════════
@@ -184,6 +184,13 @@ class RenamerApp(tk.Tk):
         for index, file in enumerate(pdf_files, 1):
             path = os.path.join(folder, file)
             self._log(f"\n[{index}/{total}]  📄  {file}", "info")
+
+            if already_renamed(file):
+                self._log("         ⏭️  اتسمّى قبل كده، متخطي", "muted")
+                self.progress["value"] = index
+                success += 1
+                continue
+
             self.status_var.set(f"جاري معالجة {index}/{total} ...")
 
             try:
@@ -222,16 +229,12 @@ class RenamerApp(tk.Tk):
                 if ref:
                     new_name = build_new_name(ref)
                     if new_name:
-                        if new_name != file:
-                            new_path = get_unique_path(folder, new_name)
-                            if not dry_run:
-                                os.rename(path, new_path)
-                            label = "[DRY RUN]" if dry_run else "✅ تم"
-                            self._log(f"         ✅  {new_name}  {label}", "ok")
-                            success += 1
-                        else:
-                            self._log(f"         ⚠️  اتسمى قبل كدا الملف دا: {file}", "warn")
-                            failed += 1
+                        new_path = get_unique_path(folder, new_name)
+                        if not dry_run:
+                            os.rename(path, new_path)
+                        label = "[DRY RUN]" if dry_run else "✅ تم"
+                        self._log(f"         ✅  {new_name}  {label}", "ok")
+                        success += 1
                     else:
                         self._log(f"         ⚠️  فورمات غريب: {ref}", "warn")
                         failed += 1
