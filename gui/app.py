@@ -8,6 +8,7 @@ from pdf2image import convert_from_path
 from config.config import DEFAULT_TESSERACT, DEFAULT_POPPLER
 from core.parser import extract_ref
 from core.renamer import build_new_name, get_unique_path, already_renamed
+from core.ocr import extract_text_from_image
 
 
 # ══════════════════════════════════════════════
@@ -139,6 +140,10 @@ class RenamerApp(tk.Tk):
 
     # ── كتابة في اللوج ──────────────────────
     def _log(self, text, tag=""):
+        # after() بيضمن إن الـ UI update يحصل في الـ main thread
+        self.after(0, self._log_safe, text, tag)
+
+    def _log_safe(self, text, tag=""):
         self.log.configure(state="normal")
         self.log.insert("end", text + "\n", tag)
         self.log.see("end")
@@ -152,8 +157,17 @@ class RenamerApp(tk.Tk):
     # ── تشغيل في thread ──────────────────────
     def _start(self):
         folder = self.folder_var.get().strip()
+        tesseract = self.tesseract_var.get().strip()
+        poppler = self.poppler_var.get().strip()
+
         if not folder or not os.path.isdir(folder):
             messagebox.showwarning("تنبيه", "اختار مجلد صح أولاً")
+            return
+        if not os.path.exists(tesseract):
+            messagebox.showerror("خطأ", f"Tesseract مش موجود:\n{tesseract}")
+            return
+        if not os.path.exists(poppler):
+            messagebox.showerror("خطأ", f"Poppler مش موجود:\n{poppler}")
             return
 
         self.run_btn.configure(state="disabled")
@@ -191,7 +205,7 @@ class RenamerApp(tk.Tk):
                 success += 1
                 continue
 
-            self.status_var.set(f"جاري معالجة {index}/{total} ...")
+            self.after(0, self.status_var.set, f"جاري معالجة {index}/{total} ...")
 
             try:
                 images = convert_from_path(
@@ -209,22 +223,16 @@ class RenamerApp(tk.Tk):
                     self.progress["value"] = index
                     continue
 
-                img = images[0]
-                w, h = img.size
-                cfg = r'--oem 1 --psm 6'
+                try:
+                    img = images[0]
 
-                crop = img.crop((0, 0, w, int(h * 0.20)))
-                text = pytesseract.image_to_string(crop, lang='eng', config=cfg)
-                ref = extract_ref(text)
-                crop.close()
-
-                if not ref:
-                    crop2 = img.crop((0, 0, w, int(h * 0.40)))
-                    text2 = pytesseract.image_to_string(crop2, lang='eng', config=cfg)
-                    ref = extract_ref(text2)
-                    crop2.close()
-
-                img.close()
+                    text = extract_text_from_image(img, 0.20)
+                    ref = extract_ref(text)
+                    if not ref:
+                        text = extract_text_from_image(img, 0.40)
+                        ref = extract_ref(text)
+                finally:
+                    img.close()
 
                 if ref:
                     new_name = build_new_name(ref)
@@ -247,7 +255,7 @@ class RenamerApp(tk.Tk):
                 self._log(f"         ❌  خطأ: {e}", "err")
                 failed += 1
 
-            self.progress["value"] = index
+            self.after(0, self.progress.configure, {"value": index})
 
         self._log("\n" + "=" * 44, "muted")
         self._log(f"✅  نجح  : {success} ملف", "ok")
@@ -257,5 +265,5 @@ class RenamerApp(tk.Tk):
             self._log("⚠️  Dry Run — مفيش حاجة اتغيرت فعلاً", "warn")
             self._log("    شيل علامة Dry Run واضغط ابدأ تاني لما تتأكد", "muted")
 
-        self.status_var.set(f"خلص ✔  نجح {success} | فشل {failed}")
-        self.run_btn.configure(state="normal")
+        self.after(0, self.status_var.set, f"خلص ✔  نجح {success} | فشل {failed}")
+        self.after(0, self.run_btn.configure, {"state": "normal"})
