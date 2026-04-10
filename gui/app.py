@@ -5,7 +5,7 @@ import os
 import pytesseract
 from pdf2image import convert_from_path
 
-from config.config import DEFAULT_TESSERACT, DEFAULT_POPPLER
+from config.config import DEFAULT_TESSERACT, DEFAULT_POPPLER, BASE_DIR
 from core.renamer import build_new_name, get_unique_path, already_renamed
 from core.ocr import get_ref_from_image
 
@@ -20,6 +20,8 @@ class RenamerApp(tk.Tk):
         self.geometry("780x620")
         self.resizable(True, True)
         self.configure(bg="#1e1e2e")
+
+        self.iconbitmap(os.path.join(BASE_DIR, "icon", "logo.ico"))
 
         self._build_ui()
 
